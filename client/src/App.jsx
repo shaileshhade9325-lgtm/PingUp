@@ -1,6 +1,6 @@
 import React from 'react'
 import { Routes, Route } from 'react-router-dom'
-import { useUser } from '@clerk/clerk-react'
+import { useUser } from '@clerk/react'
 import Login from './pages/Login'
 import Feed from './pages/Feed'
 import Messages from './pages/Messages'
@@ -9,8 +9,8 @@ import Connections from './pages/Connections'
 import Discover from './pages/Discover'
 import Profile from './pages/Profile'
 import CreatePost from './pages/CreatePost'
-import Layout from './pages/Layout' // Or your main wrapper component
-import {Toaster} from 'react-hot-toast'
+import Layout from './pages/Layout'
+import { Toaster } from 'react-hot-toast'
 
 const App = () => {
   const { user, isLoaded } = useUser()
@@ -19,7 +19,7 @@ const App = () => {
 
   return (
     <>
-    <Toaster/>
+      <Toaster />
       <Routes>
         <Route path='/' element={!user ? <Login /> : <Layout />}>
           <Route index element={<Feed />} />
