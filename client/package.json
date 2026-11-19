@@ -12,7 +12,8 @@
   "dependencies": {
     "@clerk/clerk-js": "^6.44.0",
     "@clerk/clerk-react": "^5.61.12",
-    "@clerk/react": "^6.18.8",
+    "@clerk/react": "^6.19.0",
+    "@reduxjs/toolkit": "^2.15.0",
     "@tailwindcss/vite": "^4.3.5",
     "axios": "^1.21.1",
     "lucide-react": "^1.73.0",
@@ -20,6 +21,7 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-hot-toast": "^2.6.1",
+    "react-redux": "^9.3.1",
     "react-router-dom": "^7.18.5",
     "tailwindcss": "^4.3.5"
   },

@@ -1,8 +1,11 @@
-import React, { useEffect } from 'react';
-import { Route, Routes } from 'react-router-dom';
-import { useUser, useAuth } from '@clerk/clerk-react';
-import axios from 'axios';
-import { Toaster } from 'react-hot-toast';
+import React, { useEffect, useRef } from 'react';
+import { Route, Routes, useLocation } from 'react-router-dom';
+import { useUser, useAuth } from '@clerk/react';
+import toast, { Toaster } from 'react-hot-toast';
+import { useDispatch } from 'react-redux';
+import { fetchUser } from './features/user/userSlice.js';
+import { fetchConnections } from './features/connections/connectionsSlice.js';
+import { addMessage } from './features/messages/messagesSlice.js';
 
 import Login from './pages/Login';
 import Feed from './pages/Feed';
@@ -13,60 +16,68 @@ import Discover from './pages/Discover';
 import Profile from './pages/Profile';
 import CreatePost from './pages/CreatePost';
 import Layout from './pages/Layout';
+import Notification from './components/Notification';
 
 const App = () => {
-  const { user, isSignedIn, isLoaded } = useUser();
+  const { user } = useUser();
   const { getToken } = useAuth();
+  const { pathname } = useLocation();
+  const pathnameRef = useRef(pathname);
+  const dispatch = useDispatch();
 
   useEffect(() => {
-    const syncAndLogToken = async () => {
-      if (!isLoaded || !isSignedIn || !user) return;
-
-      const token = await getToken();
-      console.log('Clerk Token:', token);
-
-      const email =
-        user.primaryEmailAddress?.emailAddress ||
-        (user.emailAddresses && user.emailAddresses.at(0)?.emailAddress);
-
-      if (!email) return;
-
-      try {
-        const backendUrl =
-          import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
-
-        const response = await axios.post(`${backendUrl}/api/user/sync`, {
-          id: user.id,
-          email,
-          full_name: user.fullName || user.firstName || 'New User',
-          profile_picture: user.imageUrl || '',
-        });
-
-        console.log('User synced to MongoDB:', response.data);
-      } catch (error) {
-        console.error(
-          'Failed to sync user to MongoDB:',
-          error.response?.data || error.message
-        );
+    const fetchData = async () => {
+      if (user) {
+        const token = await getToken();
+        dispatch(fetchUser(token));
+        dispatch(fetchConnections(token));
       }
     };
+    fetchData();
+  }, [user, getToken, dispatch]);
 
-    syncAndLogToken();
-  }, [isLoaded, isSignedIn, user, getToken]);
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
+
+  useEffect(() => {
+    if (user) {
+      const eventSource = new EventSource(
+        import.meta.env.VITE_BASEURL + '/api/message/' + user.id
+      );
+
+      eventSource.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+
+        if (pathnameRef.current === '/messages/' + message.from_user_id._id) {
+          dispatch(addMessage(message));
+        } else {
+          toast.custom(
+            (t) => <Notification t={t} message={message} />,
+            { position: 'bottom-right' }
+          );
+        }
+      };
+
+      return () => {
+        eventSource.close();
+      };
+    }
+  }, [user, dispatch]);
 
   return (
     <>
       <Toaster />
       <Routes>
-        <Route path="/" element={!user ? <Login /> : <Layout />}>
+        <Route path='/' element={!user ? <Login /> : <Layout />}>
           <Route index element={<Feed />} />
-          <Route path="messages" element={<Messages />} />
-          <Route path="messages/:userId" element={<ChatBox />} />
-          <Route path="connections" element={<Connections />} />
-          <Route path="discover" element={<Discover />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="profile/:profileId" element={<Profile />} />
-          <Route path="create-post" element={<CreatePost />} />
+          <Route path='messages' element={<Messages />} />
+          <Route path='messages/:userId' element={<ChatBox />} />
+          <Route path='connections' element={<Connections />} />
+          <Route path='discover' element={<Discover />} />
+          <Route path='profile' element={<Profile />} />
+          <Route path='profile/:profileId' element={<Profile />} />
+          <Route path='create-post' element={<CreatePost />} />
         </Route>
       </Routes>
     </>
